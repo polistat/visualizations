@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    svg {
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <svg width="700", height="500"></svg>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script>
+
+    d3.csv(
+      "state_data.csv",
+      ({ state, ev, voteshare_inc, voteshare_chal, winstate_inc, winstate_chal, bins, abbrev }) => {
+        return [state, { ev: +ev, voteshare_inc: +voteshare_inc, voteshare_chal: +voteshare_chal, winstate_inc: +winstate_inc, winstate_chal: +winstate_chal, bins, abbrev }];
+      }
+    ).then(data => {
+      const state_ev = new Map(data);
+      console.log(state_ev.values());
+
+      function dragstarted(event, d) {
+        d3.select(this).raise().select("rect").attr("stroke", "black").attr("stroke-width", 3);
+      }
+
+      function dragged(event, d) {
+        d3.select(this).attr("transform", `translate(${event.x}, ${event.y})`);
+      }
+
+      function dragended(event, d) {
+        d.x = 1000000
+        d.y = 1000000
+        const { x, y } = findClosestAvailable(toGrid(event.x), toGrid(event.y), d.size);
+        console.log(hasOverlap(toGrid(event.x), toGrid(event.y), d.size));
+        d.x = x
+        d.y = y
+        d3.select(this).attr("transform", `translate(${toCoord(d.x)}, ${toCoord(d.y)})`).select("rect").attr("stroke", function(d) { return ( d.winstate_inc > 0.85 || d.winstate_chal > 0.85 ? "none" : "black"); }).attr("stroke-width", 1.5);
+      }
+
+      const width = 700;
+      const height = 500;
+      const minRectSize = 1;
+      const maxRectSize = 4;
+      const gridSquare = 25;
+      const gutterSize = 5;
+
+      const toCoord = (numSquare) => numSquare * (gridSquare + gutterSize) - gutterSize;
+      const toGrid = (coordValue) => Math.floor((coordValue + gutterSize) / (gridSquare + gutterSize))
+
+      const squareSize = d3.scaleThreshold()
+        .domain([11, 20, 35])
+        .range([1, 2, 3, 4]);
+
+      state_ev.forEach((value, key) => {
+        // value.size = squareSize();
+        value.size = squareSize(value.ev)
+        value.x = toGrid(Math.random() * width);
+        value.y = toGrid(Math.random() * height);
+        console.log(key);
+        console.log(squareSize(value.ev));
+        console.log(value.ev);
+        console.log(value.size);
+      })
+
+      function isOccupied(x, y) {
+        for (let i = 0; i < state_ev.values().length; i++) {
+          const rectangle = state_ev.values()[i];
+          if (rectangle.x <= x && rectangle.x + rectangle.size > x && rectangle.y <= y && rectangle.y + rectangle.size > y)
+            return true;
+        }
+        return false;
+      }
+
+      function hasOverlap(x, y, size) {
+        for (let i = x; i < x + size; i++) {
+          for (let j = y; j < y + size; j++) {
+            if (isOccupied(i, j))
+              return true;
+          }
+        }
+        return false;
+      }
+
+      function findClosestAvailable(x, y, size) {
+        if (!hasOverlap(x, y, size))
+          return { x, y };
+
+        return findClosestAvailable(x + 1, y, size);
+      }
+
+      const fillColor = d3.scaleOrdinal()
+        .domain(["safe_red", "likely_red", "tossup", "likely_blue", "safe_blue"])
+        .range(["#cc3d3d", "#E7A09C", "#e6e6e6", "#8FCCE0", "#1a80c4"])
+
+      const svg = d3.select("svg")
+        .attr("viewBox", [0, 0, width, height])
+
+      svg.selectAll("rect")
+        .data(state_ev.values())
+        .enter()
+        .append("g")
+        .attr("transform", (d) => `translate(${toCoord(d.x)}, ${toCoord(d.y)})`)
+        .call(d3.drag()
+          .subject((event, d) => ({ x: toCoord(d.x), y: toCoord(d.y) }))
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended))
+        .append("rect")
+        .attr("width", (d) => toCoord(squareSize(d.ev)))
+        .attr("height", (d) => toCoord(squareSize(d.ev)))
+        .attr("fill", (d) => fillColor(d.bins))
+        .attr("stroke-width", 1.5)
+        .attr("stroke", function(d) { return ( d.winstate_inc > 0.85 || d.winstate_chal > 0.85 ? "none" : "black"); });
+
+      const text = svg.selectAll("g")
+        .append("text")
+        .attr("x", (d) => toCoord(squareSize(d.ev)) / 2)
+        .attr("y", (d) => toCoord(squareSize(d.ev)) / 2)
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "central")
+        .text(d => d.abbrev)
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "12px")
+        // .attr("font-weight", function(d) { return ( d.winstate_inc > 0.65 || d.winstate_chal > 0.65 ? "700" : "500"); })
+        .attr("fill", function(d) { return ( d.winstate_inc > 0.85 || d.winstate_chal > 0.85 ? "white" : "black"); })
+        // .attr("stroke", function(d) { return ( d.winstate_inc > 0.65 || d.winstate_chal > 0.65 ? "black" : "none"); })
+        .attr("stroke-width", 1);
+
+      const candidates = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "24px")
+        .attr("fill", "black")
+
+      candidates.append("text")
+        .attr("x", width - 200)
+        .attr("y", height - 30)
+        .text("Trump");
+      candidates.append("text")
+        .attr("x", 200)
+        .attr("y", height - 30)
+        .text("Biden");
+
+      const topBar = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "24px");
+      
+      topBar.append("rect")
+        .attr("class", "repBar")
+        .attr("x", width - 260)
+        .attr("y", 30)
+        .attr("width", 200)
+        .attr("height", 30)
+        .attr("fill", "#cc3d3d");
+      topBar.append("rect")
+        .attr("class", "demBar")
+        .attr("x", 70)
+        .attr("y", 30)
+        .attr("width", 250)
+        .attr("height", 30)
+        .attr("fill", "#1a80c4");
+      topBar.append("text")
+        .attr("x", width - 30)
+        .attr("y", 45)
+        .text("270")
+        .attr("font-weight", "bold")
+        .attr("fill", "#cc3d3d")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "central");
+      topBar.append("text")
+        .attr("x", 40)
+        .attr("y", 45)
+        .text("270")
+        .attr("font-weight", "bold")
+        .attr("fill", "#1a80c4")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "central");
+    })
+
+  </script>
+</body>
+
+</html>
