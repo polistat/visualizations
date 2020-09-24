@@ -80,7 +80,7 @@
 
       const fillColor = d3.scaleOrdinal()
         .domain(["safe_red", "likely_red", "tossup", "likely_blue", "safe_blue"])
-        .range(["#cc3d3d", "#E7A09C", "#e6e6e6", "#8FCCE0", "#1a80c4"])
+        .range(["#EF3D3D", "#E7A09C", "#e6e6e6", "#8FCCE0", "#1B6CE5"])
 
       function renderBoxes(data, {
         width,
@@ -222,20 +222,20 @@
         .attr("y", 30)
         .attr("width", 200)
         .attr("height", 30)
-        .attr("fill", "#cc3d3d");
+        .attr("fill", "#EF3D3D");
       topBar.append("rect")
         .attr("class", "demBar")
         .attr("x", 70)
         .attr("y", 30)
         .attr("width", 250)
         .attr("height", 30)
-        .attr("fill", "#1a80c4");
+        .attr("fill", "#1B6CE5");
       topBar.append("text")
         .attr("x", width - 30)
         .attr("y", 45)
         .text("270")
         .attr("font-weight", "bold")
-        .attr("fill", "#cc3d3d")
+        .attr("fill", "#EF3D3D")
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "central");
       topBar.append("text")
@@ -243,7 +243,7 @@
         .attr("y", 45)
         .text("270")
         .attr("font-weight", "bold")
-        .attr("fill", "#1a80c4")
+        .attr("fill", "#1B6CE5")
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "central");
     })
