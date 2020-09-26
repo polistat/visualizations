@@ -91,8 +91,8 @@
 </head>
 
 <body>
-  <button type="button" onclick="toggleMap('#e6e6e6')">Grey</button>
-  <button type="button" onclick="toggleMap('red')">Red</button>
+  <button type="button" onclick="toggleMap('#e6e6e6')">Bubbles</button>
+  <button type="button" onclick="toggleMapReverse(function (d) { return fillColor(state_ev.get(d.properties.name).winstate_chal); })">States</button>
   <p> hello this is where we will put instructions, buttons and other cool stuff</p>
   <svg width="1000" height="700"></svg>
   <div class="tooltip"></div>
@@ -184,17 +184,6 @@
         const width = 1000;
         const blockSize = 25;
 
-        const toggleMap = function (color) {
-          states.style("fill", color)
-          //states.style("display", "none")
-          bubbles.style("display", "block")
-        };
-        const toggleMapReverse = function (color) {
-          states.style("fill", color)
-          //states.style("display", "none")
-          bubbles.style("display", "none")
-        };
-
         const map = svg.append("g");
 
         const gs = map.append("g")
@@ -228,12 +217,12 @@
             console.log("yo");
           });
 
-        const states = gs.append("path")
+        states = gs.append("path")
           .attr("d", path)
           // .attr("fill", "#e6e6e6")
           .attr("fill", function (d) { return fillColor(state_ev.get(d.properties.name).winstate_chal); });
 
-        const bubbles = gs.append("circle")
+        bubbles = gs.append("circle")
           .data(topojson.feature(us, us.objects.states).features)
           .style("display", "none")
           .attr("class", "bubbles")
@@ -275,34 +264,6 @@
         //     color: d3.scaleOrdinal(["Safe red", "Likely red", "Tossup", "Likely blue", "Safe blue"], ["#cc3d3d", "#E7A09C", "#e6e6e6", "#8FCCE0", "#1a80c4"]),
         //     tickSize: 0
         //   }));
-
-        map.append("text")
-          .text("Electoral Votes")
-          // .attr("stroke", "black")
-          // .attr("stroke-width", 2)
-          .attr("x", width / 2 - blockSize + 100)
-          .attr("y", 650)
-          // .attr("width", blockSize)
-          // .attr("height", blockSize)
-          .attr("fill", "black")
-          .attr("text-anchor", "middle")
-          .on("click", function (event) {
-            toggleMap("#e6e6e6");
-          });
-        
-        map.append("text")
-          .text("State Map")
-          // .attr("stroke", "blue")
-          // .attr("stroke-width", 2)
-          .attr("x", width / 2 - blockSize - 100)
-          .attr("y", 650)
-          // .attr("width", blockSize)
-          // .attr("height", blockSize)
-          .attr("fill", "black")
-          .attr("text-anchor", "middle")
-          .on("click", function (event) {
-            toggleMapReverse(function (d) { return fillColor(state_ev.get(d.properties.name).winstate_chal); });
-          });
 
         map.append("rect")
           .data(eastCoast.values())
@@ -347,7 +308,7 @@
         return [state, { ev: +ev, voteshare_inc: +voteshare_inc, voteshare_chal: +voteshare_chal, winstate_inc: +winstate_inc, winstate_chal: +winstate_chal, bins, abbrev }];
       }
     ).then(data => {
-      const state_ev = Object.assign(
+      state_ev = Object.assign(
         new Map(
           data
         ),
@@ -372,10 +333,23 @@
     const svg = d3.select("svg");
     const path = d3.geoPath();
 
+    let state_ev;
+    let states;
+    let bubbles;
+
+    const toggleMap = function (color) {
+      states.style("fill", color)
+      //states.style("display", "none")
+      bubbles.style("display", "block")
+    };
+    const toggleMapReverse = function (color) {
+      states.style("fill", color)
+      //states.style("display", "none")
+      bubbles.style("display", "none")
+    };
+
     const tooltip = d3.select("div.tooltip");
     const tooltipContent = (d, state_ev) => {
-      console.log(d);
-
       return `
   <span class="state-name"> ${d.properties.name} </span> <span class="ev"> ${state_ev.get(d.properties.name).ev} electoral votes </span>
   <table> 
