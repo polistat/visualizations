@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+    <style>
+        .x-axis {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-size: 16px;
+        }
+
+        .bars {
+            opacity: 0.3;
+        }
+
+        .ev-label {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            text-anchor: middle;
+        }
+
+        .candidate-label {
+            font-family: sans-serif;
+            font-size: 30px;
+            font-weight: 700;
+            text-anchor: middle;
+            stroke: white;
+            stroke-width: 2;
+            paint-order: stroke fill;
+        }
+
+        .candidate-label {
+            font-family: sans-serif;
+            font-size: 20px;
+            text-anchor: middle;
+        }
+    </style>
+</head>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Create a div where the graph will take place -->
+
+<div id="histogram"></div>
+
+<script>
+
+    // set the dimensions and margins of the graph
+    const margin = { top: 10, right: 30, bottom: 50, left: 10 },
+        width = 1000 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    const breakPosition = 270;
+
+    function rollingAvg(b, index, array) {
+        let count = 0;
+        for (let i = 0; i < 7; ++i) {
+            if (index - i < 0)
+                return { ...b, price: count / i }
+            count += array[index - i].price;
+        };
+        return { ...b, price: count / 7 };
+    };
+
+    // append the svg object to the body of the page
+    const svg = d3.select("#histogram")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        // const svg = d3.select(svg);
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    // get the data
+    d3.csv("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/1_OneNum.csv", function (data) {
+
+        console.log(data);
+
+        // const avg = rollingAvg(data).filter(d => d != null);
+
+        // console.log(avg);
+
+        // X axis
+        const x = d3.scaleLinear()
+            .domain([0, 1000])     // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
+            .range([0, width]);
+        svg.append("g")
+            .attr("transform", "translate(0," + (height + 5) + ")")
+            .call(d3.axisBottom(x).ticks(width / 150).tickSize(0))
+            .call(g => g.select(".domain").remove())
+            .attr("class", "x-axis");
+
+        // set the parameters for the histogram
+        const histogram = d3.histogram()
+            .value(function (d) { return d.price; })   // I need to give the vector of value
+            .domain(x.domain())  // then the domain of the graphic
+            .thresholds(x.ticks(200)); // then the numbers of bins
+
+        // Bins
+        const bins = histogram(data);
+
+        // Y
+        const y = d3.scaleLinear()
+            .range([height, 0]);
+        y.domain([0, d3.max(bins, function (d) { return d.length; })]); 
+
+        // Add rectangles
+        svg.selectAll("rect")
+            .data(bins)
+            .enter()
+            .append("rect")
+            .attr("x", 1)
+            .attr("transform", function (d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
+            .attr("width", function (d) { return x(d.x1) - x(d.x0); })
+            .attr("height", function (d) { return height - y(d.length); })
+            .attr("class", "bars")
+            .style("fill", function (d) { if (d.x0 < 270) { return "#1B6CE5" } else { return "#EF3D3D" } })
+
+        // Append a vertical line to highlight the separation
+        svg
+            .append("line")
+            .attr("x1", x(breakPosition))
+            .attr("x2", x(breakPosition))
+            .attr("y1", y(0))
+            .attr("y2", y(1600))
+            .attr("stroke", "grey")
+            .attr("stroke-width", 4)
+        svg
+            .append("text")
+            .attr("x", x(breakPosition))
+            .attr("y", y(-28))
+            .text("270")
+            .attr("class", "ev-label")
+
+        // Add labels for Biden and Trump
+        svg.append("text")
+            .attr("x", x(breakPosition + 100))
+            .attr("y", y(40))
+            .text("Trump wins")
+            .attr("fill", "#EF3D3D")
+            .attr("class", "candidate-label candidate-label-trump")
+        svg.append("text")
+            .attr("x", x(breakPosition - 100))
+            .attr("y", y(40))
+            .text("Biden wins")
+            .attr("fill", "#1B6CE5")
+            .attr("class", "candidate-label")
+    });
+</script>
